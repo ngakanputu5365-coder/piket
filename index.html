@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Digital - SMPN 4 Tegallalang</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Attendance and Stats Graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font Inter & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        baligold: '#d4af37',
+                        balired: '#991b1b',
+                        balidark: '#0f172a',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ticker': 'ticker 35s linear infinite',
+                    },
+                    keyframes: {
+                        ticker: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(-100%)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+        /* Custom scrollbar for TV & Admin views */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .bg-glass {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .bg-glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .bg-glass-gold {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        .ticker-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .ticker-content {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .ticker-content:hover {
+            animation-play-state: paused;
+        }
+        /* Gradient text */
+        .text-gradient-gold {
+            background: linear-gradient(135deg, #fef08a, #d4af37, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between select-none">
+
+    <!-- TOP NAVIGATION & CONTROL BAR -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-2 flex justify-between items-center z-50 sticky top-0 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-tr from-amber-500 to-red-600 p-2 rounded-xl text-white shadow-md shadow-amber-500/20">
+                <i class="fa-solid font-bold fa-school text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-extrabold tracking-wide font-display text-white flex items-center gap-2">
+                    SMPN 4 TEGALLALANG
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <i class="fa-solid fa-gem text-[10px] mr-1"></i>Digital Board
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-400">Tegallalang, Gianyar - Bali | Tri Hita Karana</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Mode Switcher Buttons -->
+            <button id="btn-mode-tv" onclick="switchMode('tv')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20">
+                <i class="fa-solid fa-tv"></i> Layar TV Lobby
+            </button>
+            <button id="btn-mode-admin" onclick="switchMode('admin')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700">
+                <i class="fa-solid fa-user-gear"></i> Panel Admin (Guru Piket)
+            </button>
+
+            <!-- Fullscreen & Refresh Tools -->
+            <button onclick="toggleFullScreen()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-xs border border-slate-700" title="Layar Penuh">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button onclick="loadFromSheet(true)" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-emerald-400 hover:bg-slate-700 text-xs border border-slate-700" title="Sinkron dari Google Sheet">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+            </button>
+            <button onclick="resetToDefaults()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-red-400 hover:bg-slate-700 text-xs border border-slate-700" title="Reset Demo Data">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- VIEW 1: DIGITAL SIGNAGE / DISPLAY TV LOBBY -->
+    <main id="view-tv" class="flex-1 p-3 lg:p-5 flex flex-col justify-between gap-4 max-w-[1920px] mx-auto w-full">
+        
+        <!-- HEADER WIDGETS BAR -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+            <!-- Clock & Date Widget -->
+            <div class="md:col-span-4 bg-glass rounded-2xl p-4 flex items-center justify-between shadow-xl relative overflow-hidden border-l-4 border-l-amber-500">
+                <div class="absolute -right-6 -bottom-6 text-slate-800/20 text-8xl font-bold pointer-events-none">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div>
+                    <div id="tv-clock" class="text-3xl lg:text-4xl font-extrabold font-display tracking-tight text-white flex items-baseline gap-1">
+                        00:00:00 <span class="text-xs text-amber-400 font-medium">WITA</span>
+                    </div>
+                    <div id="tv-date" class="text-xs lg:text-sm text-slate-300 font-medium mt-1">
+                        Kamis, 24 Juli 2026
+                    </div>
+                </div>
+                <div class="text-right border-l border-slate-700/60 pl-4">
+                    <div class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Lokasi</div>
+                    <div class="text-xs lg:text-sm font-bold text-amber-400 flex items-center gap-1 justify-end">
+                        <i class="fa-solid fa-location-dot text-red-500"></i> Tegallalang
+                    </div>
+                    <div class="text-[10px] text-slate-400">Gianyar, Bali</div>
+                </div>
+            </div>
+
+            <!-- Realtime Weather Widget -->
+            <div class="md:col-span-3 bg-glass rounded-2xl p-4 flex items-center justify-between shadow-xl border-l-4 border-l-sky-500">
+                <div class="flex items-center gap-3">
+                    <div id="tv-weather-icon" class="text-3xl text-amber-400">
+                        <i class="fa-solid fa-sun animate-pulse"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 font-medium">Cuaca Hari Ini</div>
+                        <div id="tv-weather-temp" class="text-xl lg:text-2xl font-bold text-white font-display">28°C</div>
+                        <div id="tv-weather-desc" class="text-xs text-sky-400 font-medium">Cerah Berawan</div>
+                    </div>
+                </div>
+                <div class="text-right text-[11px] text-slate-400 border-l border-slate-700/60 pl-3">
+                    <div><i class="fa-solid fa-droplet text-blue-400 mr-1"></i><span id="tv-weather-humidity">78%</span></div>
+                    <div class="mt-1"><i class="fa-solid fa-wind text-slate-400 mr-1"></i><span id="tv-weather-wind">12 km/h</span></div>
+                </div>
+            </div>
+
+            <!-- Attendance Counter Widget -->
+            <div class="md:col-span-5 bg-glass rounded-2xl p-4 flex items-center justify-around shadow-xl border-l-4 border-l-emerald-500">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg border border-emerald-500/30">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400 font-medium">Guru & Staff Hadir</div>
+                        <div class="text-xl lg:text-2xl font-bold text-white font-display">
+                            <span id="tv-stat-guru-hadir">38</span> <span class="text-xs text-slate-400 font-normal">/ <span id="tv-stat-guru-total">40</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg border border-blue-500/30">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400 font-medium">Siswa Hadir</div>
+                        <div class="text-xl lg:text-2xl font-bold text-white font-display">
+                            <span id="tv-stat-siswa-hadir">482</span> <span class="text-xs text-slate-400 font-normal">/ <span id="tv-stat-siswa-total">510</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD CONTENT GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+
+            <!-- LEFT COLUMN: Urgent Announcements, Agenda, Duty Teachers, Balinese Ceremonies -->
+            <div class="lg:col-span-3 flex flex-col gap-4">
+                
+                <!-- Priority Announcements -->
+                <div class="bg-glass rounded-2xl p-4 flex-1 flex flex-col border border-red-500/30 shadow-lg relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-3">
+                        <h2 class="text-sm font-bold text-red-400 flex items-center gap-2 uppercase tracking-wide">
+                            <i class="fa-solid fa-bullhorn animate-bounce text-red-500"></i> Pengumuman Utama
+                        </h2>
+                        <span class="text-[10px] bg-red-500/20 text-red-300 border border-red-500/40 px-2 py-0.5 rounded-full font-semibold">Penting</span>
+                    </div>
+                    <div id="tv-list-announcements" class="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[220px]">
+                        <!-- Dynamic JS announcements rendered here -->
+                    </div>
+                </div>
+
+                <!-- Agenda Hari Ini -->
+                <div class="bg-glass rounded-2xl p-4 flex-1 flex flex-col shadow-lg border border-slate-800">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-700/80 mb-3">
+                        <h2 class="text-sm font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wide">
+                            <i class="fa-regular fa-calendar-check text-amber-400"></i> Agenda Hari Ini
+                        </h2>
+                        <span class="text-[10px] text-slate-400 font-medium" id="tv-agenda-count">5 Kegiatan</span>
+                    </div>
+                    <div id="tv-list-agendas" class="space-y-2 overflow-y-auto max-h-[220px] pr-1">
+                        <!-- Dynamic Agendas JS -->
+                    </div>
+                </div>
+
+                <!-- Guru Piket Hari Ini -->
+                <div class="bg-glass rounded-2xl p-4 shadow-lg border border-slate-800">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-700/80 mb-2">
+                        <h2 class="text-xs font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-wide">
+                            <i class="fa-solid fa-user-shield text-emerald-400"></i> Guru Piket Hari Ini
+                        </h2>
+                    </div>
+                    <div id="tv-list-piket" class="space-y-2">
+                        <!-- Dynamic Piket JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- CENTER COLUMN: ROTATING DYNAMIC STAGE (News, Gallery, Video, Achievements, Schedule, Ceremonies) -->
+            <div class="lg:col-span-6 flex flex-col gap-4">
+                
+                <!-- AUTO ROTATING CAROUSEL CARD -->
+                <div class="bg-glass rounded-2xl p-5 shadow-2xl flex-1 flex flex-col relative overflow-hidden border border-amber-500/20 min-h-[420px]">
+                    <!-- Slide Indicators / Tab Headers -->
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 mb-4 z-10">
+                        <div class="flex items-center gap-2">
+                            <span id="tv-stage-badge" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5">
+                                <i id="tv-stage-icon" class="fa-solid fa-newspaper"></i>
+                                <span id="tv-stage-title">Berita & Informasi Sekolah</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-32 bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700">
+                                <div id="tv-stage-progress" class="bg-gradient-to-r from-amber-500 to-red-500 h-full w-0 transition-all duration-300"></div>
+                            </div>
+                            <span id="tv-stage-counter" class="text-[11px] text-slate-400 font-mono">1/5</span>
+                        </div>
+                    </div>
+
+                    <!-- Stage Dynamic Slide View container -->
+                    <div id="tv-stage-content" class="flex-1 flex flex-col justify-center relative z-10">
+                        <!-- Dynamic Carousel Slide content loaded here -->
+                    </div>
+
+                    <!-- Carousel Manual Controls -->
+                    <div class="flex justify-between items-center pt-3 border-t border-slate-800 mt-2 z-10">
+                        <div class="text-xs text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-play text-amber-400 animate-pulse"></i> Auto-rotate Layar (12 Detik)
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="prevStageSlide()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs border border-slate-700"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                            <button onclick="nextStageSlide()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs border border-slate-700">Next <i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLASS SCHEDULE & TEACHING STATUS ROW -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Rotating Class Schedule -->
+                    <div class="bg-glass rounded-2xl p-4 shadow-lg border border-slate-800">
+                        <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+                            <h3 class="text-xs font-bold text-sky-400 flex items-center gap-1.5 uppercase">
+                                <i class="fa-solid fa-book-open"></i> Jadwal Pelajaran (<span id="tv-schedule-class-name">Kelas VII</span>)
+                            </h3>
+                            <span class="text-[10px] text-slate-400">Auto switch</span>
+                        </div>
+                        <div id="tv-schedule-list" class="space-y-1.5 text-xs max-h-[140px] overflow-y-auto">
+                            <!-- Dynamic Schedule JS -->
+                        </div>
+                    </div>
+
+                    <!-- Teacher Status (Guru Mengajar / Kosong) -->
+                    <div class="bg-glass rounded-2xl p-4 shadow-lg border border-slate-800">
+                        <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+                            <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase">
+                                <i class="fa-solid fa-chalkboard-user"></i> Status Guru Mengajar
+                            </h3>
+                            <span class="text-[10px] text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i> Jam Berlangsung</span>
+                        </div>
+                        <div id="tv-teacher-status-list" class="space-y-1.5 text-xs max-h-[140px] overflow-y-auto">
+                            <!-- Dynamic Teacher status JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Attendance Chart, Canteen, Balinese Worship, Library & Motivation -->
+            <div class="lg:col-span-3 flex flex-col gap-4">
+                
+                <!-- Attendance Chart & Breakdown -->
+                <div class="bg-glass rounded-2xl p-4 shadow-lg border border-slate-800">
+                    <div class="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+                        <h3 class="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase">
+                            <i class="fa-solid fa-chart-pie"></i> Kehadiran Siswa Hari Ini
+                        </h3>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-24 h-24 relative">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                        <div class="flex-1 space-y-1 text-xs">
+                            <div class="flex justify-between items-center"><span class="text-emerald-400 font-medium">Hadir</span> <span id="tv-att-hadir" class="font-bold">482</span></div>
+                            <div class="flex justify-between items-center"><span class="text-blue-400 font-medium">Izin</span> <span id="tv-att-izin" class="font-bold">12</span></div>
+                            <div class="flex justify-between items-center"><span class="text-amber-400 font-medium">Sakit</span> <span id="tv-att-sakit" class="font-bold">11</span></div>
+                            <div class="flex justify-between items-center"><span class="text-red-400 font-medium">Alfa</span> <span id="tv-att-alfa" class="font-bold">5</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balinese Sacred Days / Jadwal Ibadah & Rahina -->
+                <div class="bg-glass-gold rounded-2xl p-4 shadow-lg">
+                    <div class="flex items-center justify-between pb-2 border-b border-amber-500/30 mb-2">
+                        <h3 class="text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase">
+                            <i class="fa-solid fa-om text-amber-400"></i> Jadwal Ibadah & Rahina Suci
+                        </h3>
+                        <span class="text-[10px] bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full font-semibold">Bali Info</span>
+                    </div>
+                    <div id="tv-balinese-days" class="space-y-1.5 text-xs max-h-[120px] overflow-y-auto">
+                        <!-- Dynamic JS -->
+                    </div>
+                </div>
+
+                <!-- Birthdays Today (Guru/Siswa) -->
+                <div class="bg-glass rounded-2xl p-4 shadow-lg border border-pink-500/30">
+                    <div class="flex items-center justify-between pb-1 border-b border-slate-800 mb-2">
+                        <h3 class="text-xs font-bold text-pink-400 flex items-center gap-1.5 uppercase">
+                            <i class="fa-solid fa-cake-candles text-pink-400"></i> Ulang Tahun Hari Ini
+                        </h3>
+                    </div>
+                    <div id="tv-birthday-list" class="space-y-1.5 text-xs">
+                        <!-- Dynamic JS -->
+                    </div>
+                </div>
+
+                <!-- Motivational Quotes Widget -->
+                <div class="bg-gradient-to-br from-slate-900 to-indigo-950/80 rounded-2xl p-4 shadow-lg border border-indigo-500/30 flex-1 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-[11px] text-indigo-300 font-semibold mb-1">
+                        <span><i class="fa-solid fa-quote-left text-indigo-400 mr-1"></i> Mutiara Kata Hari Ini</span>
+                        <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                    </div>
+                    <p id="tv-motivation-text" class="text-xs lg:text-sm italic text-slate-200 my-2 leading-relaxed">
+                        "Belajar hari ini adalah investasi masa depan. Cerdas, Berkarakter, dan Berbudaya."
+                    </p>
+                    <div id="tv-motivation-author" class="text-right text-[11px] font-bold text-amber-400">
+                        — Tri Hita Karana SMPN 4 Tegallalang
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- BOTTOM RUNNING TEXT & QR CODE BAR -->
+        <footer class="bg-slate-900/90 rounded-2xl p-2.5 shadow-2xl border border-slate-800 flex items-center gap-4">
+            <!-- Running Text Label -->
+            <div class="bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-2 shrink-0 uppercase tracking-wider shadow-md shadow-red-600/30">
+                <i class="fa-solid fa-scroll text-sm"></i> Info Terkini
+            </div>
+            
+            <!-- Ticker Container -->
+            <div class="flex-1 overflow-hidden font-medium text-xs lg:text-sm text-slate-200 py-1">
+                <div id="tv-running-text" class="whitespace-nowrap animate-ticker inline-block">
+                    <!-- Dynamic Ticker JS -->
+                </div>
+            </div>
+
+            <!-- Contacts & QR Code Quick Modal Trigger -->
+            <div class="shrink-0 flex items-center gap-3 border-l border-slate-800 pl-3">
+                <button onclick="showModal('qr')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 p-2 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-qrcode text-base"></i>
+                    <span class="hidden md:inline">Scan QR</span>
+                </button>
+            </div>
+        </footer>
+
+    </main>
+
+    <!-- VIEW 2: ADMIN PANEL (GURU PIKET MANAGEMENT) -->
+    <main id="view-admin" class="hidden flex-1 p-4 lg:p-6 max-w-[1600px] mx-auto w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- ADMIN SIDEBAR MENU -->
+            <aside class="lg:col-span-3 bg-slate-900/90 rounded-2xl p-4 border border-slate-800 shadow-xl h-fit">
+                <div class="p-3 bg-gradient-to-r from-amber-500/10 to-red-500/10 rounded-xl border border-amber-500/20 mb-4 text-center">
+                    <i class="fa-solid fa-user-shield text-3xl text-amber-400 mb-1"></i>
+                    <h2 class="text-base font-bold text-white">Panel Guru Piket</h2>
+                    <p class="text-xs text-slate-400">Pengelolaan Konten Tampilan Lobby TV</p>
+                </div>
+
+                <nav class="space-y-1">
+                    <button onclick="switchAdminTab('dash')" id="tab-btn-dash" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition bg-amber-500 text-slate-950 font-bold">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-gauge-high"></i> Ringkasan Dashboard</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('announcement')" id="tab-btn-announcement" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-bullhorn text-red-400"></i> Kelola Pengumuman</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('agenda')" id="tab-btn-agenda" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-regular fa-calendar-days text-amber-400"></i> Kelola Agenda Hari Ini</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('attendance')" id="tab-btn-attendance" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-check text-emerald-400"></i> Kehadiran & Guru Piket</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('news')" id="tab-btn-news" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-newspaper text-blue-400"></i> Kelola Berita & Galeri</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('schedule')" id="tab-btn-schedule" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-book text-indigo-400"></i> Jadwal Pelajaran & Guru</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('balinese')" id="tab-btn-balinese" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-om text-amber-300"></i> Rahina Bali & Ultah</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('canteen')" id="tab-btn-canteen" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-utensils text-green-400"></i> Kantin & Perpustakaan</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('runningtext')" id="tab-btn-runningtext" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-sliders text-pink-400"></i> Running Text & Motivasi</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button onclick="switchAdminTab('backup')" id="tab-btn-backup" class="admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-database text-teal-400"></i> Backup & Export Data</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- ADMIN CONTENT AREA -->
+            <section class="lg:col-span-9 space-y-6">
+
+                <!-- TAB 1: OVERVIEW DASHBOARD -->
+                <div id="admin-tab-dash" class="admin-tab-content space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
+                        <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-gauge text-amber-400"></i> Status Sistem Digital Board SMPN 4 Tegallalang
+                        </h2>
+                        <p class="text-xs text-slate-400 mb-6">Guru Piket dapat memperbarui data di bawah ini melalui HP atau komputer. Perubahan akan langsung terlihat pada layar TV lobby secara otomatis tanpa mengubah kodingan.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs text-slate-400">Total Pengumuman Active</div>
+                                    <div class="text-2xl font-bold text-amber-400" id="adm-count-ann">0</div>
+                                </div>
+                                <i class="fa-solid fa-bullhorn text-3xl text-slate-700"></i>
+                            </div>
+                            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs text-slate-400">Agenda Hari Ini</div>
+                                    <div class="text-2xl font-bold text-sky-400" id="adm-count-age">0</div>
+                                </div>
+                                <i class="fa-solid fa-calendar-day text-3xl text-slate-700"></i>
+                            </div>
+                            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs text-slate-400">Siswa Hadir (% Status)</div>
+                                    <div class="text-2xl font-bold text-emerald-400" id="adm-count-att">94%</div>
+                                </div>
+                                <i class="fa-solid fa-users text-3xl text-slate-700"></i>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-circle-info text-amber-400 text-xl"></i>
+                                <div>
+                                    <h4 class="text-xs font-bold text-amber-300">Tips Penggunaan Layar TV Lobby:</h4>
+                                    <p class="text-xs text-slate-300">Gunakan browser Chrome / Edge pada TV Android / STB di lobby sekolah, buka aplikasi ini, lalu klik icon "Layar Penuh (Fullscreen)" di pojok kanan atas.</p>
+                                </div>
+                            </div>
+                            <button onclick="switchMode('tv')" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl font-bold text-xs shrink-0 hover:bg-amber-400">
+                                Buka Mode TV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: KELOLA PENGUMUMAN -->
+                <div id="admin-tab-announcement" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-bullhorn text-red-400"></i> Kelola Pengumuman Sekolah
+                            </h2>
+                            <button onclick="openAnnouncementModal()" class="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-red-600/30">
+                                <i class="fa-solid fa-plus"></i> Tambah Pengumuman Baru
+                            </button>
+                        </div>
+
+                        <div id="adm-announcement-list" class="space-y-3">
+                            <!-- Dynamic Admin Announcements -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: KELOLA AGENDA -->
+                <div id="admin-tab-agenda" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-regular fa-calendar-check text-amber-400"></i> Kelola Agenda Kegiatan Hari Ini
+                            </h2>
+                            <button onclick="openAgendaModal()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-amber-500/30">
+                                <i class="fa-solid fa-plus"></i> Tambah Agenda Baru
+                            </button>
+                        </div>
+
+                        <div id="adm-agenda-list" class="space-y-3">
+                            <!-- Dynamic Admin Agendas -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: KEHADIRAN & GURU PIKET -->
+                <div id="admin-tab-attendance" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-6">
+                        <div>
+                            <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-users-check text-emerald-400"></i> Update Statistik Kehadiran Hari Ini
+                            </h2>
+                            <form id="form-attendance" onsubmit="saveAttendance(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Siswa Hadir</label>
+                                    <input type="number" id="adm-att-hadir" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Siswa Izin</label>
+                                    <input type="number" id="adm-att-izin" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Siswa Sakit</label>
+                                    <input type="number" id="adm-att-sakit" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Siswa Alfa</label>
+                                    <input type="number" id="adm-att-alfa" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Guru & Staff Hadir</label>
+                                    <input type="number" id="adm-att-guru-hadir" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Total Guru & Staff</label>
+                                    <input type="number" id="adm-att-guru-total" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+
+                                <div class="md:col-span-4 text-right">
+                                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30">
+                                        <i class="fa-solid fa-floppy-disk"></i> Simpan Data Kehadiran
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <hr class="border-slate-800">
+
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-user-shield text-emerald-400"></i> Kelola Petugas Guru Piket Hari Ini
+                                </h3>
+                                <button onclick="openPiketModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-semibold border border-slate-700">
+                                    <i class="fa-solid fa-plus"></i> Tambah Guru Piket
+                                </button>
+                            </div>
+                            <div id="adm-piket-list" class="space-y-2">
+                                <!-- Dynamic piket -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: BERITA & GALERI -->
+                <div id="admin-tab-news" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-newspaper text-blue-400"></i> Kelola Berita & Galeri Slideshow Lobby
+                            </h2>
+                            <button onclick="openNewsModal()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-blue-600/30">
+                                <i class="fa-solid fa-plus"></i> Tambah Berita / Galeri Baru
+                            </button>
+                        </div>
+
+                        <div id="adm-news-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Dynamic admin news -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: JADWAL PELAJARAN & GURU -->
+                <div id="admin-tab-schedule" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
+                        <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chalkboard-user text-indigo-400"></i> Update Guru Mengajar & Status Kelas Hari Ini
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <p class="text-xs text-slate-400">Centang atau ubah status pengajaran guru secara cepat di bawah ini:</p>
+                            <div id="adm-teacher-status-list" class="space-y-2">
+                                <!-- Dynamic admin teacher status list -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: RAHINA BALI & ULTAH -->
+                <div id="admin-tab-balinese" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h2 class="text-base font-bold text-amber-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-om"></i> Jadwal Ibadah & Hari Raya Bali
+                                </h2>
+                                <button onclick="openBalineseModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs">
+                                    <i class="fa-solid fa-plus"></i> Tambah Rahina
+                                </button>
+                            </div>
+                            <div id="adm-balinese-list" class="space-y-2">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-800">
+
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h2 class="text-base font-bold text-pink-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-cake-candles"></i> Ucapan Ulang Tahun Hari Ini
+                                </h2>
+                                <button onclick="openBirthdayModal()" class="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg text-xs">
+                                    <i class="fa-solid fa-plus"></i> Tambah Ulang Tahun
+                                </button>
+                            </div>
+                            <div id="adm-birthday-list" class="space-y-2">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 8: KANTIN & PERPUSTAKAAN -->
+                <div id="admin-tab-canteen" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-6">
+                        <div>
+                            <h2 class="text-base font-bold text-green-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-utensils"></i> Menu Kantin Sehat Hari Ini
+                            </h2>
+                            <form onsubmit="saveCanteenMenu(event)" class="space-y-3">
+                                <textarea id="adm-canteen-text" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-green-500" placeholder="Contoh: Nasi Yasa Sehat (Rp 5.000), Es Daluman Organik (Rp 3.000), Buah Pisang Rai..."></textarea>
+                                <div class="text-right">
+                                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold">Simpan Menu Kantin</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <hr class="border-slate-800">
+
+                        <div>
+                            <h2 class="text-base font-bold text-sky-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-book-bookmark"></i> Informasi & Buku Baru Perpustakaan
+                            </h2>
+                            <form onsubmit="saveLibraryInfo(event)" class="space-y-3">
+                                <textarea id="adm-library-text" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-sky-500" placeholder="Contoh: Buku Baru: Cerita Rakyat Bali (Dewa Gede), Sains P5. Jam buka: 07.30 - 14.00 WITA."></textarea>
+                                <div class="text-right">
+                                    <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-bold">Simpan Info Perpustakaan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 9: RUNNING TEXT & MOTIVASI -->
+                <div id="admin-tab-runningtext" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-6">
+                        <div>
+                            <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-scroll text-pink-400"></i> Kelola Running Text Bottom Ticker
+                            </h2>
+                            <form onsubmit="saveRunningText(event)" class="space-y-3">
+                                <label class="block text-xs text-slate-400">Teks Berjalan di Bagian Bawah Layar TV:</label>
+                                <textarea id="adm-running-text-input" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-amber-500" required></textarea>
+                                <div class="text-right">
+                                    <button type="submit" class="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-bold">
+                                        <i class="fa-solid fa-floppy-disk"></i> Simpan Running Text
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <hr class="border-slate-800">
+
+                        <div>
+                            <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-lightbulb text-amber-400"></i> Kelola Mutiara Kata / Motivasi Hari Ini
+                            </h2>
+                            <form onsubmit="saveMotivation(event)" class="space-y-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Kata Motivasi:</label>
+                                    <input type="text" id="adm-motivation-quote" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Pengutip / Tokoh:</label>
+                                    <input type="text" id="adm-motivation-author" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500" required>
+                                </div>
+                                <div class="text-right">
+                                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold">
+                                        <i class="fa-solid fa-floppy-disk"></i> Simpan Motivasi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 10: BACKUP & RESTORE DATA -->
+                <div id="admin-tab-backup" class="admin-tab-content hidden space-y-4">
+                    <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-database text-teal-400"></i> Backup & Restore Data Sistem
+                        </h2>
+                        <p class="text-xs text-slate-400">Simpan cadangan data informasi sekolah dalam bentuk file JSON atau muat data cadangan dari perangkat Anda.</p>
+
+                        <div class="flex flex-wrap gap-3 pt-2">
+                            <button onclick="exportDataJSON()" class="px-4 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> Download Backup Data (JSON)
+                            </button>
+                            <label class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer flex items-center gap-2">
+                                <i class="fa-solid fa-upload"></i> Restore / Upload File JSON
+                                <input type="file" id="import-file" accept=".json" onchange="importDataJSON(event)" class="hidden">
+                            </label>
+                            <button onclick="resetToDefaults()" class="px-4 py-2.5 bg-red-900/50 hover:bg-red-800 text-red-300 rounded-xl text-xs font-bold border border-red-700/50 flex items-center gap-2">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Ke Data Contoh Awal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- GENERAL PURPOSE MODAL CONTAINER -->
+    <div id="global-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden justify-center items-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="modal-body">
+                <!-- Dynamic Modal Content rendered via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION FLOATER -->
+    <div id="toast" class="fixed bottom-16 right-6 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 transition-all opacity-0 translate-y-4 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span id="toast-message">Data berhasil diperbarui!</span>
+    </div>
+
+    <script>
+        // APP INITIAL STATE & DEFAULT DATA FOR SMPN 4 TEGALLALANG
+        const DEFAULT_DATA = {
+            announcements: [
+                { id: 1, title: "Pakaian Adat Bali", desc: "Besok seluruh warga sekolah wajib mengenakan Busana Adat Bali sesuai Edaran Gubernur.", date: "24 Juli 2026", priority: "high" },
+                { id: 2, title: "Jadwal Penilaian Sumatif", desc: "Penilaian Sumatif Tengah Semester dimajukan ke hari Senin depan. Persiapkan diri.", date: "25 Juli 2026", priority: "medium" },
+                { id: 3, title: "Rapat Orang Tua & Komite", desc: "Rapat koordinasi P5 dan program unggulan sekolah bersama orang tua siswa kelas VII.", date: "28 Juli 2026", priority: "normal" }
+            ],
+            agendas: [
+                { time: "07:15 - 07:45", title: "Apel Pagi & Literasi", location: "Lapangan Utama" },
+                { time: "08:00 - 09:30", title: "Pembelajaran Sesi 1", location: "Ruang Kelas VII-IX" },
+                { time: "09:30 - 10:00", title: "Kunjungan Pengawas Sekolah", location: "Ruang Kepsek" },
+                { time: "10:15 - 12:00", title: "Lomba Kebersihan Lingkungan", location: "Seluruh Area Sekolah" },
+                { time: "12:30 - 14:00", title: "Rapat Evaluasi Guru & Staff", location: "Ruang Rapat Guru" }
+            ],
+            piket: [
+                { name: "I Wayan Sudiarta, S.Pd", duty: "Piket Gerbang Depan & Kehadiran", phone: "0812-3456-7890" },
+                { name: "Ni Luh Putu Astuti, M.Pd", duty: "Piket Ketertiban & PBM Kelas", phone: "0819-8765-4321" }
+            ],
+            attendance: {
+                siswaHadir: 482,
+                siswaIzin: 12,
+                siswaSakit: 11,
+                siswaAlfa: 5,
+                siswaTotal: 510,
+                guruHadir: 38,
+                guruTotal: 40
+            },
+            news: [
+                { id: 1, title: "SMPN 4 Tegallalang Raih Juara 1 Lomba Tari Kebyar Terompah", category: "Prestasi Seni", image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80", desc: "Tim kesenian siswa SMPN 4 Tegallalang berhasil memukau juri dalam Festival Seni Gianyar." },
+                { id: 2, title: "Kegiatan P5 Tema Gaya Hidup Berkelanjutan: Pengolahan Sampah Organik", category: "P5 & Lingkungan", image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80", desc: "Siswa diajarkan membuat kompostasi dan pupuk cair memanfaatkan sisa dedaunan di lingkungan Tegallalang." },
+                { id: 3, title: "Pelepasan Kontingen Pramuka Garuda SMPN 4 Tegallalang", category: "Ekstrakulikuler", image: "https://images.unsplash.com/photo-1526976668912-1a811878dd37?w=800&q=80", desc: "Kepala Sekolah resmi melepas 20 anggota Pramuka terbaik menuju Jambore Daerah Bali." }
+            ],
+            teacherStatus: [
+                { classRoom: "Kelas VII-A", teacher: "I Made Sukarma, S.Pd", subject: "Matematika", status: "Mengajar", subTeacher: "-" },
+                { classRoom: "Kelas VIII-B", teacher: "Ni Kadek Murni, S.Pd", subject: "Bahasa Indonesia", status: "Kosong (Tugas)", subTeacher: "I Nyoman Wira, S.Pd" },
+                { classRoom: "Kelas IX-C", teacher: "Drs. I Ketut Rai", subject: "IPA Terpadu", status: "Mengajar", subTeacher: "-" }
+            ],
+            schedules: {
+                "VII": [
+                    { jam: "07.45 - 08.25", mapel: "Bahasa Bali", guru: "Ni Made Rai, S.Pd" },
+                    { jam: "08.25 - 09.05", mapel: "Matematika", guru: "I Wayan Sudiarta, S.Pd" },
+                    { jam: "09.20 - 10.00", mapel: "Informatika", guru: "I Putu Agus, S.Kom" },
+                    { jam: "10.00 - 10.40", mapel: "Pendidikan Pancasila", guru: "Drs. I Wayan Budi" }
+                ],
+                "VIII": [
+                    { jam: "07.45 - 08.25", mapel: "IPA Terpadu", guru: "Drs. I Ketut Rai" },
+                    { jam: "08.25 - 09.05", mapel: "Bahasa Inggris", guru: "Ni Luh Putu Astuti, M.Pd" },
+                    { jam: "09.20 - 10.00", mapel: "Seni Budaya", guru: "I Gede Mangku, S.Sn" },
+                    { jam: "10.00 - 10.40", mapel: "PJOK", guru: "I Made Agus, S.Pd" }
+                ],
+                "IX": [
+                    { jam: "07.45 - 08.25", mapel: "IPS Terpadu", guru: "Ni Komang Sri, S.Pd" },
+                    { jam: "08.25 - 09.05", mapel: "Pendidikan Agama Hindu", guru: "Ida Bagus Made, S.Ag" },
+                    { jam: "09.20 - 10.00", mapel: "Bahasa Indonesia", guru: "Ni Kadek Murni, S.Pd" },
+                    { jam: "10.00 - 10.40", mapel: "Matematika", guru: "I Wayan Sudiarta, S.Pd" }
+                ]
+            },
+            balineseDays: [
+                { date: "29 Juli 2026", name: "Rahina Purnama Kasa", desc: "Sembahyang Bersama di Padmasana Sekolah" },
+                { date: "13 Agustus 2026", name: "Rahina Tilem Kasa", desc: "Persembahyangan & Kebersihan Pura Sekolah" },
+                { date: "19 September 2026", name: "Hari Raya Saraswati", desc: "Pemujaan Dewi Ilmu Pengetahuan" }
+            ],
+            birthdays: [
+                { name: "I Gede Mangku, S.Sn", role: "Guru Seni Budaya", date: "Hari Ini" },
+                { name: "Ni Kadek Ariani", role: "Siswa Kelas VIII-B", date: "Hari Ini" }
+            ],
+            canteenMenu: "Nasi Yasa Bali Sehat (Rp 5.000) • Es Daluman Organik (Rp 3.000) • Pisang Rai Suci (Rp 2.000) • Buah Lontar & Fresh Juice",
+            libraryInfo: "Buku Baru Minggu Ini: 'Ensiklopedia Budaya Bali', 'Inovasi Digital P5'. Jam Buka Perpustakaan: 07.30 - 14.00 WITA.",
+            runningText: "Selamat Datang di SMPN 4 Tegallalang • Cerdas, Taqwa, Berkarakter dan Berbudaya Berlandaskan Tri Hita Karana • Jagalah Kebersihan Lingkungan Sekolah • Utamakan Senyum, Sapa, Salam, Sopan, Santun (5S)",
+            motivation: {
+                quote: "Belajar hari ini adalah investasi masa depan. Cerdas, Berkarakter, dan Berbudaya Berlandaskan Tri Hita Karana.",
+                author: "Motto SMPN 4 Tegallalang"
+            }
+        };
+
+        // =====================================================================
+        // KONEKSI KE GOOGLE SHEET (via Google Apps Script Web App)
+        // 1. Deploy file Code.gs (lihat panduan) sebagai Web App.
+        // 2. Salin URL Web App yang dihasilkan lalu tempel di bawah ini.
+        // =====================================================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbzQtRgEZG9wzrkJ_nH6xUe2pyh7XPndvgfgz9cE0zFpDCegHE0yh1iV98D1lCZRQWcQ/exec";
+        const SYNC_INTERVAL_MS = 30000; // Layar TV auto-refresh dari Google Sheet setiap 30 detik
+
+        function isApiConfigured() {
+            return API_URL && !API_URL.includes('TEMPEL_URL_WEB_APP');
+        }
+
+        // App state loaded from LocalStorage or Fallback
+        let appData = JSON.parse(localStorage.getItem('SMPN4_DIGITAL_BOARD')) || JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+        let currentStageIndex = 0;
+        let stageTimer = null;
+        let attendanceChartInstance = null;
+        let currentClassScheduleKey = 'VII';
+
+        // Save data to localStorage + sinkron ke Google Sheet
+        function saveData() {
+            localStorage.setItem('SMPN4_DIGITAL_BOARD', JSON.stringify(appData));
+            renderTVView();
+            renderAdminView();
+            syncToSheet();
+        }
+
+        // Kirim seluruh appData ke Google Sheet lewat Apps Script Web App
+        function syncToSheet() {
+            if (!isApiConfigured()) return;
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // hindari preflight CORS di Apps Script
+                body: JSON.stringify(appData)
+            }).catch(err => console.error('Gagal sinkron ke Google Sheet:', err));
+        }
+
+        // Ambil data terbaru dari Google Sheet (dipakai saat load & auto-refresh Layar TV)
+        async function loadFromSheet(showToastOnSuccess) {
+            if (!isApiConfigured()) return;
+            try {
+                const res = await fetch(API_URL + '?t=' + Date.now());
+                const data = await res.json();
+                if (data && !data.error) {
+                    appData = data;
+                    localStorage.setItem('SMPN4_DIGITAL_BOARD', JSON.stringify(appData));
+                    renderTVView();
+                    renderAdminView();
+                    if (showToastOnSuccess) showToast('Data tersinkron dari Google Sheet');
+                }
+            } catch (err) {
+                console.error('Gagal ambil data dari Google Sheet:', err);
+                if (showToastOnSuccess) showToast('Gagal terhubung ke Google Sheet');
+            }
+        }
+
+        // Clock & Date Logic
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour12: false });
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('id-ID', options);
+
+            const clockEl = document.getElementById('tv-clock');
+            const dateEl = document.getElementById('tv-date');
+
+            if (clockEl) clockEl.innerHTML = `${timeStr} <span class="text-xs text-amber-400 font-medium">WITA</span>`;
+            if (dateEl) dateEl.innerText = dateStr;
+        }
+
+        // Mode Navigation Switcher
+        function switchMode(mode) {
+            const viewTv = document.getElementById('view-tv');
+            const viewAdmin = document.getElementById('view-admin');
+            const btnTv = document.getElementById('btn-mode-tv');
+            const btnAdmin = document.getElementById('btn-mode-admin');
+
+            if (mode === 'tv') {
+                viewTv.classList.remove('hidden');
+                viewAdmin.classList.add('hidden');
+                btnTv.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20";
+                btnAdmin.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700";
+                renderTVView();
+                startStageCarousel();
+            } else {
+                viewTv.classList.add('hidden');
+                viewAdmin.classList.remove('hidden');
+                btnAdmin.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20";
+                btnTv.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700";
+                stopStageCarousel();
+                renderAdminView();
+            }
+        }
+
+        // Admin Tab Navigation Switcher
+        function switchAdminTab(tabId) {
+            const tabs = document.querySelectorAll('.admin-tab-content');
+            tabs.forEach(t => t.classList.add('hidden'));
+
+            const selected = document.getElementById(`admin-tab-${tabId}`);
+            if (selected) selected.classList.remove('hidden');
+
+            const btns = document.querySelectorAll('.admin-tab-btn');
+            btns.forEach(b => {
+                b.className = "admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition text-slate-300 hover:bg-slate-800 hover:text-white";
+            });
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = "admin-tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-500/20";
+            }
+        }
+
+        // RENDER TV VIEW DATA
+        function renderTVView() {
+            // Stats
+            document.getElementById('tv-stat-guru-hadir').innerText = appData.attendance.guruHadir;
+            document.getElementById('tv-stat-guru-total').innerText = appData.attendance.guruTotal;
+            document.getElementById('tv-stat-siswa-hadir').innerText = appData.attendance.siswaHadir;
+            document.getElementById('tv-stat-siswa-total').innerText = appData.attendance.siswaTotal;
+
+            // Attendance chart
+            renderAttendanceChart();
+
+            // Announcements List
+            const annContainer = document.getElementById('tv-list-announcements');
+            annContainer.innerHTML = appData.announcements.map(ann => `
+                <div class="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/80 hover:border-red-500/40 transition">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-200">
+                        <span class="text-red-400 font-display">${escapeHTML(ann.title)}</span>
+                        <span class="text-[10px] text-slate-400 font-normal"><i class="fa-regular fa-clock mr-1"></i>${ann.date}</span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1 line-clamp-2">${escapeHTML(ann.desc)}</p>
+                </div>
+            `).join('');
+
+            // Agendas List
+            const agendaContainer = document.getElementById('tv-list-agendas');
+            document.getElementById('tv-agenda-count').innerText = `${appData.agendas.length} Kegiatan`;
+            agendaContainer.innerHTML = appData.agendas.map(ag => `
+                <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/60 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 bg-amber-500/20 text-amber-300 rounded-lg text-[10px] font-mono font-bold">${ag.time}</span>
+                        <div>
+                            <div class="font-semibold text-slate-200">${escapeHTML(ag.title)}</div>
+                            <div class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot text-red-400 mr-1"></i>${escapeHTML(ag.location)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Guru Piket List
+            const piketContainer = document.getElementById('tv-list-piket');
+            piketContainer.innerHTML = appData.piket.map(p => `
+                <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/60 flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/30">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div class="min-w-0 flex-1 text-xs">
+                        <div class="font-bold text-slate-200 truncate">${escapeHTML(p.name)}</div>
+                        <div class="text-[10px] text-slate-400 truncate">${escapeHTML(p.duty)}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Schedule rendering
+            renderClassSchedule();
+
+            // Teacher status list
+            const teacherContainer = document.getElementById('tv-teacher-status-list');
+            teacherContainer.innerHTML = appData.teacherStatus.map(ts => `
+                <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-slate-200">${escapeHTML(ts.classRoom)} - ${escapeHTML(ts.subject)}</div>
+                        <div class="text-[10px] text-slate-400">${escapeHTML(ts.teacher)}</div>
+                    </div>
+                    <div>
+                        ${ts.status === 'Mengajar' 
+                            ? `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">Hadir</span>`
+                            : `<span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">Digantikan (${escapeHTML(ts.subTeacher)})</span>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            // Balinese Days
+            const baliContainer = document.getElementById('tv-balinese-days');
+            baliContainer.innerHTML = appData.balineseDays.map(bd => `
+                <div class="bg-amber-950/40 p-2 rounded-xl border border-amber-500/20 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-amber-300">${escapeHTML(bd.name)}</div>
+                        <div class="text-[10px] text-slate-300">${escapeHTML(bd.desc)}</div>
+                    </div>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-200 px-2 py-0.5 rounded-md font-mono">${escapeHTML(bd.date)}</span>
+                </div>
+            `).join('');
+
+            // Birthdays
+            const bdayContainer = document.getElementById('tv-birthday-list');
+            bdayContainer.innerHTML = appData.birthdays.length ? appData.birthdays.map(b => `
+                <div class="bg-pink-950/40 p-2 rounded-xl border border-pink-500/20 flex justify-between items-center text-xs">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-cake-candles text-pink-400"></i>
+                        <div>
+                            <div class="font-bold text-pink-200">${escapeHTML(b.name)}</div>
+                            <div class="text-[10px] text-slate-300">${escapeHTML(b.role)}</div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded-md font-bold animate-pulse">🎉 Ultah</span>
+                </div>
+            `).join('') : `<div class="text-xs text-slate-500 italic">Tidak ada ultah hari ini</div>`;
+
+            // Running Text & Motivation
+            document.getElementById('tv-running-text').innerText = appData.runningText;
+            document.getElementById('tv-motivation-text').innerText = `"${appData.motivation.quote}"`;
+            document.getElementById('tv-motivation-author').innerText = `— ${appData.motivation.author}`;
+
+            // Render current carousel stage
+            renderStageContent();
+        }
+
+        function renderAttendanceChart() {
+            const ctx = document.getElementById('attendanceChart');
+            if (!ctx) return;
+
+            document.getElementById('tv-att-hadir').innerText = appData.attendance.siswaHadir;
+            document.getElementById('tv-att-izin').innerText = appData.attendance.siswaIzin;
+            document.getElementById('tv-att-sakit').innerText = appData.attendance.siswaSakit;
+            document.getElementById('tv-att-alfa').innerText = appData.attendance.siswaAlfa;
+
+            if (attendanceChartInstance) {
+                attendanceChartInstance.destroy();
+            }
+
+            attendanceChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hadir', 'Izin', 'Sakit', 'Alfa'],
+                    datasets: [{
+                        data: [
+                            appData.attendance.siswaHadir,
+                            appData.attendance.siswaIzin,
+                            appData.attendance.siswaSakit,
+                            appData.attendance.siswaAlfa
+                        ],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // STAGE CAROUSEL LOGIC FOR TV LOBBY
+        const STAGE_SLIDES = ['news', 'canteen', 'library', 'profile'];
+
+        function renderStageContent() {
+            const container = document.getElementById('tv-stage-content');
+            const titleEl = document.getElementById('tv-stage-title');
+            const iconEl = document.getElementById('tv-stage-icon');
+            const counterEl = document.getElementById('tv-stage-counter');
+
+            counterEl.innerText = `${currentStageIndex + 1}/${STAGE_SLIDES.length}`;
+
+            const slideType = STAGE_SLIDES[currentStageIndex];
+
+            if (slideType === 'news') {
+                titleEl.innerText = "Berita & Galeri Sekolah";
+                iconEl.className = "fa-solid fa-newspaper";
+                const activeNews = appData.news[0] || {};
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div class="rounded-xl overflow-hidden h-52 bg-slate-800 border border-slate-700 relative">
+                            <img src="${activeNews.image}" alt="Berita" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400/1e293b/d4af37?text=SMPN+4+Tegallalang'">
+                            <div class="absolute top-2 left-2 bg-amber-500 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-md shadow">
+                                ${escapeHTML(activeNews.category || 'Berita')}
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <h3 class="text-base lg:text-lg font-bold text-white font-display leading-snug">
+                                ${escapeHTML(activeNews.title || 'Informasi Sekolah')}
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                ${escapeHTML(activeNews.desc || '')}
+                            </p>
+                            <div class="pt-2 flex items-center gap-2">
+                                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded-md border border-slate-700">
+                                    <i class="fa-solid fa-camera mr-1"></i> Dokumentasi SMPN 4 Tegallalang
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (slideType === 'canteen') {
+                titleEl.innerText = "Kantin Sehat Hari Ini";
+                iconEl.className = "fa-solid fa-utensils text-green-400";
+                container.innerHTML = `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-green-500/30 flex flex-col items-center text-center space-y-3">
+                        <div class="w-14 h-14 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-2xl border border-green-500/30">
+                            <i class="fa-solid fa-apple-whole"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-green-400">Menu Kantin Sehat SMPN 4 Tegallalang</h3>
+                        <p class="text-sm text-slate-200 leading-relaxed max-w-lg">
+                            ${escapeHTML(appData.canteenMenu)}
+                        </p>
+                        <span class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                            🌿 Bebas Kantong Plastik • Higienis & Bergizi
+                        </span>
+                    </div>
+                `;
+            } else if (slideType === 'library') {
+                titleEl.innerText = "Informasi Perpustakaan";
+                iconEl.className = "fa-solid fa-book-open-reader text-sky-400";
+                container.innerHTML = `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-sky-500/30 flex flex-col items-center text-center space-y-3">
+                        <div class="w-14 h-14 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-2xl border border-sky-500/30">
+                            <i class="fa-solid fa-book"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-sky-400">Layanan Perpustakaan & Koleksi Baru</h3>
+                        <p class="text-sm text-slate-200 leading-relaxed max-w-lg">
+                            ${escapeHTML(appData.libraryInfo)}
+                        </p>
+                        <span class="text-xs text-amber-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                            📖 "Membaca Adalah Jendela Dunia"
+                        </span>
+                    </div>
+                `;
+            } else if (slideType === 'profile') {
+                titleEl.innerText = "Profil & Visi Misi Sekolah";
+                iconEl.className = "fa-solid fa-school text-amber-400";
+                container.innerHTML = `
+                    <div class="bg-slate-800/50 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+                        <div class="flex items-center gap-3 border-b border-slate-700/80 pb-2">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-landmark"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-white">SMP NEGERI 4 TEGALLALANG</h3>
+                                <p class="text-[11px] text-slate-400">Terakreditasi A • Kecamatan Tegallalang, Kabupaten Gianyar</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                                <span class="font-bold text-amber-400 block mb-1">VISI SEKOLAH</span>
+                                <p class="text-slate-300 text-[11px]">Unggul dalam Prestasi, Cerdas, Berkarakter, dan Berbudaya Berlandaskan Tri Hita Karana.</p>
+                            </div>
+                            <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                                <span class="font-bold text-amber-400 block mb-1">MOTTO SEKOLAH</span>
+                                <p class="text-slate-300 text-[11px]">"Vidya Dadati Vinayam" — Ilmu Pengetahuan Memberikan Kerendahan Hati dan Kebijaksanaan.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Animate stage progress bar
+            const progressEl = document.getElementById('tv-stage-progress');
+            progressEl.style.width = '0%';
+            setTimeout(() => { progressEl.style.width = '100%'; }, 50);
+        }
+
+        function nextStageSlide() {
+            currentStageIndex = (currentStageIndex + 1) % STAGE_SLIDES.length;
+            renderStageContent();
+        }
+
+        function prevStageSlide() {
+            currentStageIndex = (currentStageIndex - 1 + STAGE_SLIDES.length) % STAGE_SLIDES.length;
+            renderStageContent();
+        }
+
+        function startStageCarousel() {
+            stopStageCarousel();
+            stageTimer = setInterval(() => {
+                nextStageSlide();
+                rotateClassSchedule();
+            }, 12000);
+        }
+
+        function stopStageCarousel() {
+            if (stageTimer) clearInterval(stageTimer);
+        }
+
+        function rotateClassSchedule() {
+            const keys = ['VII', 'VIII', 'IX'];
+            const idx = keys.indexOf(currentClassScheduleKey);
+            currentClassScheduleKey = keys[(idx + 1) % keys.length];
+            renderClassSchedule();
+        }
+
+        function renderClassSchedule() {
+            const nameEl = document.getElementById('tv-schedule-class-name');
+            const listEl = document.getElementById('tv-schedule-list');
+            if (nameEl) nameEl.innerText = `Kelas ${currentClassScheduleKey}`;
+
+            const list = appData.schedules[currentClassScheduleKey] || [];
+            if (listEl) {
+                listEl.innerHTML = list.map(item => `
+                    <div class="bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/60 flex justify-between items-center text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded">${item.jam}</span>
+                            <span class="font-semibold text-slate-200">${escapeHTML(item.mapel)}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400">${escapeHTML(item.guru)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // RENDER ADMIN VIEW DATA & FORMS
+        function renderAdminView() {
+            // Dashboard quick counts
+            document.getElementById('adm-count-ann').innerText = appData.announcements.length;
+            document.getElementById('adm-count-age').innerText = appData.agendas.length;
+
+            // Render Announcements Admin List
+            const admAnn = document.getElementById('adm-announcement-list');
+            admAnn.innerHTML = appData.announcements.map((a, i) => `
+                <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-sm text-white">${escapeHTML(a.title)} <span class="text-xs font-normal text-slate-400">(${a.date})</span></div>
+                        <p class="text-xs text-slate-300 mt-0.5">${escapeHTML(a.desc)}</p>
+                    </div>
+                    <button onclick="deleteAnnouncement(${i})" class="p-2 text-red-400 hover:text-red-300 hover:bg-slate-700 rounded-lg">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Render Agendas Admin List
+            const admAge = document.getElementById('adm-agenda-list');
+            admAge.innerHTML = appData.agendas.map((ag, i) => `
+                <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-xs text-amber-400">${ag.time} • ${escapeHTML(ag.location)}</div>
+                        <div class="font-semibold text-sm text-white">${escapeHTML(ag.title)}</div>
+                    </div>
+                    <button onclick="deleteAgenda(${i})" class="p-2 text-red-400 hover:text-red-300 hover:bg-slate-700 rounded-lg">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Pre-fill attendance form
+            document.getElementById('adm-att-hadir').value = appData.attendance.siswaHadir;
+            document.getElementById('adm-att-izin').value = appData.attendance.siswaIzin;
+            document.getElementById('adm-att-sakit').value = appData.attendance.siswaSakit;
+            document.getElementById('adm-att-alfa').value = appData.attendance.siswaAlfa;
+            document.getElementById('adm-att-guru-hadir').value = appData.attendance.guruHadir;
+            document.getElementById('adm-att-guru-total').value = appData.attendance.guruTotal;
+
+            // Guru Piket list admin
+            const admPiket = document.getElementById('adm-piket-list');
+            admPiket.innerHTML = appData.piket.map((p, i) => `
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-white">${escapeHTML(p.name)}</div>
+                        <div class="text-slate-400">${escapeHTML(p.duty)} • HP: ${escapeHTML(p.phone)}</div>
+                    </div>
+                    <button onclick="deletePiket(${i})" class="text-red-400 hover:text-red-300 p-1.5">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // News list admin
+            const admNews = document.getElementById('adm-news-list');
+            admNews.innerHTML = appData.news.map((n, i) => `
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex gap-3 items-center">
+                    <img src="${n.image}" class="w-16 h-16 object-cover rounded-lg bg-slate-900" onerror="this.src='https://placehold.co/100x100/1e293b/d4af37?text=Foto'">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[10px] font-bold text-amber-400 uppercase">${escapeHTML(n.category)}</div>
+                        <div class="font-bold text-xs text-white truncate">${escapeHTML(n.title)}</div>
+                    </div>
+                    <button onclick="deleteNews(${i})" class="text-red-400 p-2">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Teacher status list admin
+            const admTeach = document.getElementById('adm-teacher-status-list');
+            admTeach.innerHTML = appData.teacherStatus.map((ts, i) => `
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div>
+                        <span class="font-bold text-amber-400">${escapeHTML(ts.classRoom)}</span> - <span class="font-semibold text-white">${escapeHTML(ts.subject)}</span>
+                        <div class="text-slate-400">${escapeHTML(ts.teacher)}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select onchange="updateTeacherStatus(${i}, this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
+                            <option value="Mengajar" ${ts.status === 'Mengajar' ? 'selected' : ''}>Mengajar</option>
+                            <option value="Kosong (Tugas)" ${ts.status !== 'Mengajar' ? 'selected' : ''}>Kosong / Ada Pengganti</option>
+                        </select>
+                    </div>
+                </div>
+            `).join('');
+
+            // Balinese Days Admin
+            const admBali = document.getElementById('adm-balinese-list');
+            admBali.innerHTML = appData.balineseDays.map((bd, i) => `
+                <div class="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-amber-300">${escapeHTML(bd.name)} (${escapeHTML(bd.date)})</div>
+                        <div class="text-slate-400">${escapeHTML(bd.desc)}</div>
+                    </div>
+                    <button onclick="deleteBalineseDay(${i})" class="text-red-400 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+
+            // Birthday Admin
+            const admBday = document.getElementById('adm-birthday-list');
+            admBday.innerHTML = appData.birthdays.map((b, i) => `
+                <div class="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-pink-300">${escapeHTML(b.name)}</div>
+                        <div class="text-slate-400">${escapeHTML(b.role)}</div>
+                    </div>
+                    <button onclick="deleteBirthday(${i})" class="text-red-400 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+
+            // Canteen & Library Text
+            document.getElementById('adm-canteen-text').value = appData.canteenMenu;
+            document.getElementById('adm-library-text').value = appData.libraryInfo;
+
+            // Running Text & Motivation Inputs
+            document.getElementById('adm-running-text-input').value = appData.runningText;
+            document.getElementById('adm-motivation-quote').value = appData.motivation.quote;
+            document.getElementById('adm-motivation-author').value = appData.motivation.author;
+        }
+
+        // ACTION HANDLERS & MODAL TRIGGERS
+        function openAnnouncementModal() {
+            showModal('add-announcement', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Pengumuman Baru</h3>
+                <form onsubmit="saveNewAnnouncement(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Judul Pengumuman</label>
+                        <input type="text" id="modal-ann-title" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Isi Pengumuman</label>
+                        <textarea id="modal-ann-desc" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none" required></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Tanggal</label>
+                        <input type="text" id="modal-ann-date" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" value="Hari ini" required>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-xl">Simpan Pengumuman</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewAnnouncement(e) {
+            e.preventDefault();
+            const title = document.getElementById('modal-ann-title').value;
+            const desc = document.getElementById('modal-ann-desc').value;
+            const date = document.getElementById('modal-ann-date').value;
+
+            appData.announcements.unshift({ id: Date.now(), title, desc, date, priority: 'high' });
+            saveData();
+            closeModal();
+            showToast('Pengumuman baru telah ditambahkan!');
+        }
+
+        function deleteAnnouncement(index) {
+            appData.announcements.splice(index, 1);
+            saveData();
+            showToast('Pengumuman dihapus');
+        }
+
+        function openAgendaModal() {
+            showModal('add-agenda', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Agenda Hari Ini</h3>
+                <form onsubmit="saveNewAgenda(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Waktu (Contoh: 08:00 - 09:30)</label>
+                        <input type="text" id="modal-ag-time" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nama Kegiatan</label>
+                        <input type="text" id="modal-ag-title" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Lokasi Kegiatan</label>
+                        <input type="text" id="modal-ag-loc" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl">Simpan Agenda</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewAgenda(e) {
+            e.preventDefault();
+            const time = document.getElementById('modal-ag-time').value;
+            const title = document.getElementById('modal-ag-title').value;
+            const location = document.getElementById('modal-ag-loc').value;
+
+            appData.agendas.push({ time, title, location });
+            saveData();
+            closeModal();
+            showToast('Agenda berhasil ditambahkan!');
+        }
+
+        function deleteAgenda(index) {
+            appData.agendas.splice(index, 1);
+            saveData();
+            showToast('Agenda dihapus');
+        }
+
+        function saveAttendance(e) {
+            e.preventDefault();
+            appData.attendance.siswaHadir = parseInt(document.getElementById('adm-att-hadir').value) || 0;
+            appData.attendance.siswaIzin = parseInt(document.getElementById('adm-att-izin').value) || 0;
+            appData.attendance.siswaSakit = parseInt(document.getElementById('adm-att-sakit').value) || 0;
+            appData.attendance.siswaAlfa = parseInt(document.getElementById('adm-att-alfa').value) || 0;
+            appData.attendance.guruHadir = parseInt(document.getElementById('adm-att-guru-hadir').value) || 0;
+            appData.attendance.guruTotal = parseInt(document.getElementById('adm-att-guru-total').value) || 0;
+
+            saveData();
+            showToast('Data Kehadiran Disimpan!');
+        }
+
+        function openPiketModal() {
+            showModal('add-piket', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Petugas Guru Piket</h3>
+                <form onsubmit="saveNewPiket(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nama Guru Piket</label>
+                        <input type="text" id="modal-pik-name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Tugas Piket</label>
+                        <input type="text" id="modal-pik-duty" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" placeholder="Contoh: Piket Gerbang Depan" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nomor HP / WhatsApp</label>
+                        <input type="text" id="modal-pik-phone" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">Simpan Guru Piket</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewPiket(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-pik-name').value;
+            const duty = document.getElementById('modal-pik-duty').value;
+            const phone = document.getElementById('modal-pik-phone').value;
+
+            appData.piket.push({ name, duty, phone });
+            saveData();
+            closeModal();
+            showToast('Guru Piket ditambahkan!');
+        }
+
+        function deletePiket(i) {
+            appData.piket.splice(i, 1);
+            saveData();
+            showToast('Guru Piket dihapus');
+        }
+
+        function openNewsModal() {
+            showModal('add-news', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Berita / Galeri Kegiatan</h3>
+                <form onsubmit="saveNewNews(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Judul Berita</label>
+                        <input type="text" id="modal-news-title" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Kategori (P5 / Prestasi / Pramuka / Lomba)</label>
+                        <input type="text" id="modal-news-cat" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">URL Foto Dokumentasi</label>
+                        <input type="text" id="modal-news-img" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" placeholder="https://..." required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Deskripsi Singkat</label>
+                        <textarea id="modal-news-desc" rows="2" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white" required></textarea>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl">Simpan Berita</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewNews(e) {
+            e.preventDefault();
+            const title = document.getElementById('modal-news-title').value;
+            const category = document.getElementById('modal-news-cat').value;
+            const image = document.getElementById('modal-news-img').value;
+            const desc = document.getElementById('modal-news-desc').value;
+
+            appData.news.unshift({ id: Date.now(), title, category, image, desc });
+            saveData();
+            closeModal();
+            showToast('Berita baru berhasil diterbitkan!');
+        }
+
+        function deleteNews(i) {
+            appData.news.splice(i, 1);
+            saveData();
+            showToast('Berita dihapus');
+        }
+
+        function updateTeacherStatus(index, newStatus) {
+            appData.teacherStatus[index].status = newStatus;
+            saveData();
+            showToast('Status guru diperbarui');
+        }
+
+        function openBalineseModal() {
+            showModal('add-bali', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Jadwal Rahina Bali</h3>
+                <form onsubmit="saveNewBalineseDay(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nama Rahina (Purnama/Tilem/Saraswati)</label>
+                        <input type="text" id="modal-bali-name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Tanggal</label>
+                        <input type="text" id="modal-bali-date" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Keterangan Kegiatan</label>
+                        <input type="text" id="modal-bali-desc" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl">Simpan Rahina</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewBalineseDay(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-bali-name').value;
+            const date = document.getElementById('modal-bali-date').value;
+            const desc = document.getElementById('modal-bali-desc').value;
+
+            appData.balineseDays.push({ name, date, desc });
+            saveData();
+            closeModal();
+            showToast('Jadwal Rahina ditambahkan!');
+        }
+
+        function deleteBalineseDay(i) {
+            appData.balineseDays.splice(i, 1);
+            saveData();
+            showToast('Jadwal dihapus');
+        }
+
+        function openBirthdayModal() {
+            showModal('add-bday', `
+                <h3 class="text-base font-bold text-white mb-3">Tambah Ucapan Ultah</h3>
+                <form onsubmit="saveNewBirthday(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Nama Guru / Siswa</label>
+                        <input type="text" id="modal-bday-name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Jabatan / Kelas</label>
+                        <input type="text" id="modal-bday-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" required>
+                    </div>
+                    <div class="text-right pt-2">
+                        <button type="submit" class="px-4 py-2 bg-pink-600 text-white font-bold text-xs rounded-xl">Simpan Ucapan</button>
+                    </div>
+                </form>
+            `);
+        }
+
+        function saveNewBirthday(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-bday-name').value;
+            const role = document.getElementById('modal-bday-role').value;
+
+            appData.birthdays.push({ name, role, date: 'Hari Ini' });
+            saveData();
+            closeModal();
+            showToast('Ucapan Ultah ditambahkan!');
+        }
+
+        function deleteBirthday(i) {
+            appData.birthdays.splice(i, 1);
+            saveData();
+            showToast('Ucapan dihapus');
+        }
+
+        function saveCanteenMenu(e) {
+            e.preventDefault();
+            appData.canteenMenu = document.getElementById('adm-canteen-text').value;
+            saveData();
+            showToast('Menu Kantin Diperbarui!');
+        }
+
+        function saveLibraryInfo(e) {
+            e.preventDefault();
+            appData.libraryInfo = document.getElementById('adm-library-text').value;
+            saveData();
+            showToast('Info Perpustakaan Diperbarui!');
+        }
+
+        function saveRunningText(e) {
+            e.preventDefault();
+            appData.runningText = document.getElementById('adm-running-text-input').value;
+            saveData();
+            showToast('Running text diperbarui!');
+        }
+
+        function saveMotivation(e) {
+            e.preventDefault();
+            appData.motivation.quote = document.getElementById('adm-motivation-quote').value;
+            appData.motivation.author = document.getElementById('adm-motivation-author').value;
+            saveData();
+            showToast('Kata motivasi diperbarui!');
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `SMPN4_Tegallalang_DigitalBoard_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDataJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    appData = parsed;
+                    saveData();
+                    showToast('Data berhasil dimuat dari file!');
+                } catch(err) {
+                    alert('Format file JSON tidak valid.');
+                }
+            };
+            fileReader.readAsText(event.target.files[0]);
+        }
+
+        function resetToDefaults() {
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            saveData();
+            showToast('Data telah di-reset ke standar demo!');
+        }
+
+        // UTILITY UI HELPERS
+        function showModal(type, customHtml = '') {
+            const modal = document.getElementById('global-modal');
+            const modalBody = document.getElementById('modal-body');
+
+            if (type === 'qr') {
+                modalBody.innerHTML = `
+                    <div class="text-center space-y-4">
+                        <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl mx-auto border border-amber-500/30">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">Scan QR Code Resmi SMPN 4 Tegallalang</h3>
+                        <div class="p-4 bg-white rounded-2xl w-48 h-48 mx-auto flex items-center justify-center shadow-inner">
+                            <!-- Generated Placeholder QR SVG -->
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://smpn4tegallalang.sch.id" alt="QR Code" class="w-full h-full" onerror="this.src='https://placehold.co/180x180/000000/ffffff?text=QR+Code'">
+                        </div>
+                        <p class="text-xs text-slate-400">Pindai untuk mengakses Website Resmi, PPDB Online, dan Media Sosial Sekolah</p>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = customHtml;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('global-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // INITIALIZATION
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderTVView();
+            startStageCarousel();
+
+            if (isApiConfigured()) {
+                loadFromSheet(false); // muat data terbaru dari Google Sheet saat pertama dibuka
+                setInterval(() => loadFromSheet(false), SYNC_INTERVAL_MS); // auto-refresh berkala (untuk Layar TV)
+            }
+        };
+    </script>
+</body>
+</html>
